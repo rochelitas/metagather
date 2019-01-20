@@ -1,9 +1,10 @@
 #! /bin/bash
 set -e
+: ${PYTHON:=python3.6}
 
 cd $(dirname $(readlink -f "$0"))
 if [ ! -d ./venv ]; then
-  virtualenv --python=python3 ./venv
+  $PYTHON -m virtualenv -p $PYTHON ./venv
   (
     source ./venv/bin/activate
     pip install -r ./required
