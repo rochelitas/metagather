@@ -1,3 +1,0 @@
-basedir: ../game
-database: ../wow-nodes.json
-dbdriver: json
