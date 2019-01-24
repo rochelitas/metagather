@@ -252,12 +252,14 @@ def _save(out: io.TextIOBase, db: dict, name: str) -> None:
     if '' in keys:
         keys = keys - {''}
         out.write('\t{\n')
-        for k,v in db[name][''].items():
+        for k in sorted(db[name][''].keys()):
+            v = db[name][''][k]
             out.write(f'\t\t[{k}] = {v},\n')
         out.write('\t}, -- [1]\n')
-    for g in keys:
+    for g in sorted(keys):
         out.write(f'\t[{g}] = {{\n')
-        for k,v in db[name][g].items():
+        for k in sorted(db[name][g].keys()):
+            v = db[name][g][k]
             out.write(f'\t\t[{k}] = {v},\n')
         out.write('\t},\n')
     out.write('}\n')
@@ -269,11 +271,12 @@ def save_db(db: dict, fname: str) -> None:
         out.write('\n')
         out.write('GatherMateDB = {\n')
         out.write('\t["profileKeys"] = {\n')
-        for k, v in db['GatherMateDB']['profileKeys'].items():
+        for k in sorted(db['GatherMateDB']['profileKeys'].keys()):
+            v = db['GatherMateDB']['profileKeys'][k]
             out.write(f'\t\t["{k}"] = "{v}",\n')
         out.write('\t},\n')
         out.write('\t["profiles"] = {\n')
-        for k in db['GatherMateDB']['profiles'].keys():
+        for k in sorted(db['GatherMateDB']['profiles'].keys()):
             out.write(f'\t\t["{k}"] = {{\n')
             out.write('\t\t},\n')
         out.write('\t},\n')
