@@ -1,4 +1,4 @@
 {
     "basedir": "../",
-    "database": "../GatherMate.lua.collected"
+    "database": "../metagather-data/GatherMate.lua"
 }
