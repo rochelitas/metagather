@@ -11,5 +11,5 @@ if [ ! -d ./venv ]; then
   )
 fi
 
-source ./venv/bin/activate
+test -e && source ./venv/bin/activate
 python run-merge.py
