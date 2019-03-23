@@ -66,7 +66,9 @@ class TokenID(AutoName):
     STRING = enum.auto()
     NAME = enum.auto()
 
-    END = enum.auto()
+    END_OF_LINE = enum.auto()
+    END_OF_STREAM = enum.auto()
+
     ERROR = enum.auto()
 
 

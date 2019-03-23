@@ -29,6 +29,12 @@ KEYWORDS = {
 
 COMMENT = '--'
 
+EOLS: tp.Tuple[str] = (
+    '\n\r',
+    '\r\n',
+    '\n'
+)
+
 COMBOS: tp.Tuple[tp.Tuple[str, _token.TokenID]] = (
     ('...', _token.TokenID.ELLIPSIS),
     ('<=', _token.TokenID.KEY_LE),
@@ -61,6 +67,13 @@ rx_NUMERIC = re.compile(r'^([+-]?(\d+\.\d+|\.\d+|\d+\.?)([eE][+-]?\d+|))')
 rx_IDENTIFIER = re.compile(r'^([A-Za-z_][A-Za-z_0-9]*)')
 rx_OPEN_LONG_BRACKET = re.compile(r'^\[=*\[')
 rx_CLOSE_LONG_BRACKET = re.compile(r'^\]=*\]')
+
+
+def _eol_check(text: str) -> int:
+    for s in EOLS:
+        if text.startswith(s):
+            return len(s)
+    return 0
 
 
 class Tokenizer:
@@ -175,7 +188,7 @@ class Tokenizer:
                 if self._line is None:
                     if self._closing_bracket:
                         yield self._token(_token.TokenID.ERROR, 'Missing closing bracket')
-                    yield self._token(_token.TokenID.END, 'NULL LINE')
+                    yield self._token(_token.TokenID.END_OF_STREAM, 'NULL LINE')
                     return
             if self._closing_bracket:
                 pos = self._line.find(self._closing_bracket)
@@ -183,12 +196,9 @@ class Tokenizer:
                     self._block_content += self._line[:pos]
                     self._skip(pos + len(self._closing_bracket))
                     # skip first CR[LF]
-                    if self._block_content[:2] == '\n\r':
-                        self._block_content = self._block_content[2:]
-                    elif self._block_content[:2] == '\r\n':
-                        self._block_content = self._block_content[2:]
-                    elif self._block_content[:1] == '\n':
-                        self._block_content = self._block_content[1:]
+                    n = _eol_check(self._block_content)
+                    if n:
+                        self._block_content = self._block_content[n:]
                     if self._block_is_comment:
                         yield self._token(_token.TokenID.COMMENT, self._block_content)
                     else:
@@ -200,6 +210,11 @@ class Tokenizer:
                     self._block_content += self._line
                     self._skip(len(self._line))
                     continue
+            # check for end of line
+            n = _eol_check(self._line)
+            if n:
+                self._skip(n)
+                yield self._token(_token.TokenID.END_OF_LINE, '')
             # skip trailing spaces
             self._skip_spaces()
             if not self._line:  # readline if there is no token
