@@ -1,4 +1,4 @@
-#! /usr/bin/venv python3
+#! /usr/bin/env python3
 
 # see
 # http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
