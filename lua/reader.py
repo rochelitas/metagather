@@ -6,7 +6,9 @@ from lua import _token
 from lua import _tokenizer
 
 
-class ParserError(Exception): pass
+class ParserError(Exception):
+    pass
+
 
 class TokenBasedError(ParserError):
     def __init__(self, token: _token.Token, text: str):
@@ -110,6 +112,7 @@ class StringValue(Value):
 #         return self._raw_value
 #
 #
+
 
 class Parser:
 
@@ -243,7 +246,8 @@ class Parser:
     def _parse_fields(self) -> tp.List[tp.Any]:
         fields: tp.List[tp.Any] = []
         while True:
-            if self._cur.id in (_token.TokenID.END_OF_LINE,):
+            if self._cur.id in (_token.TokenID.END_OF_LINE,
+                                _token.TokenID.COMMENT):
                 self._consume()
                 continue
             if self._cur.id in (_token.TokenID.KEY_CLOSE_CURLY_BRACKET,
@@ -301,11 +305,20 @@ def _test(text: str) -> None:
     pprint.pprint(result)
 
 
+def _test_file(name:str) -> None:
+    _test(open(name, mode='r', encoding='utf-8').read())
+
+
 def _test1():
     _test('''
 foo = {["bar"]="baz"; [10]=23, "kaka byaka"}
 ''')
 
 
+def _test2():
+    # _test_file('../testdata/GatherMate/test1.lua')
+    _test_file('../testdata/MobInfo2/1.lua')
+
+
 if __name__ == '__main__':
-    _test1()
+    _test2()

@@ -234,29 +234,6 @@ class Tokenizer:
                     self._skip(len(s))
                     yield self._token(_token.TokenID.COMMENT, s)
                     continue
-            # Check for keyword or identifier
-            try:
-                value = self._get_identifier()
-                self._skip(len(value))
-                if value in KEYWORDS:
-                    yield self._token(KEYWORDS[value], value)
-                else:
-                    yield self._token(_token.TokenID.NAME, value)
-                continue
-            except ValueError:
-                pass
-            # Check for multichar or singlechar combinations
-            key = None
-            tok = None
-            for k, v in COMBOS:
-                if self._line.startswith(k):
-                    key = k
-                    tok = v
-                    break
-            if key:
-                yield self._token(tok, key)
-                self._skip(len(key))
-                continue
             # Check for numeric value
             try:
                 value = self._get_number()
@@ -296,6 +273,29 @@ class Tokenizer:
                 except ValueError:
                     yield self._token(_token.TokenID.ERROR, f'bad \'-string: f{self._line}')
                     break
+            # Check for keyword or identifier
+            try:
+                value = self._get_identifier()
+                self._skip(len(value))
+                if value in KEYWORDS:
+                    yield self._token(KEYWORDS[value], value)
+                else:
+                    yield self._token(_token.TokenID.NAME, value)
+                continue
+            except ValueError:
+                pass
+            # Check for multichar or singlechar combinations
+            key = None
+            tok = None
+            for k, v in COMBOS:
+                if self._line.startswith(k):
+                    key = k
+                    tok = v
+                    break
+            if key:
+                yield self._token(tok, key)
+                self._skip(len(key))
+                continue
             yield self._token(_token.TokenID.ERROR, f'bad string: {self._line}')
 
 
@@ -314,8 +314,13 @@ def _test(stream: tp.TextIO) -> None:
     print("---- done ----")
 
 
+def _test_text(text: str) -> None:
+    _test(io.StringIO(text))
+
+
 def _test_file(fname: str) -> None:
     _test(open(fname, mode='r', encoding='utf-8'))
+
 
 
 def test1():
@@ -329,6 +334,9 @@ def test2():
 def test3():
     _test_file('../testdata/MobInfo2/1.lua')
 
+def test_numbers():
+    _test_text('a=1; b=+2; c=-3; d=4.; e=.5; f=-6.7; g=8e9; h=-1.011e-12')
+
 
 if __name__ == '__main__':
-    test3()
+    test_numbers()
