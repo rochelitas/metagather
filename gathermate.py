@@ -1,4 +1,4 @@
-#! /usr/bin/venv python3
+#! /usr/bin/env python3
 
 import io
 import re
@@ -43,18 +43,24 @@ class GatherMate:
     def db(self):
         return self.__db
 
-    def load(self, inp: io.TextIOBase):
+    def load(self, inp: tp.TextIO):
         rx_space = re.compile(r'^\s*$')
-        rx_opendb = re.compile(r'^\s*(\w+)\s*=\s*{\s*$')  # NameOfBase = {
-        rx_open0 = re.compile(r'^\s*{\s*$')  # {
-        rx_opennest_num = re.compile(r'^\s*\[(\d+)\]\s*=\s*{\s*$')  # [IntKey] = {
-        rx_opennest_str = re.compile(r'^\s*\["(.+?)"\]\s*=\s*{\s*$')  # ["NameOfKey"] = {
-        rx_kvpair_num = re.compile(r'^\s*\[(\d+)\]\s*=\s*(\d+),?\s*$')  # [IntKey] = IntVal
-        rx_kvpair_str = re.compile(r'^\s*\["(.+?)"\]\s*=\s*"(.*?)",?\s*$')  # [StrKey] = StrVal
-        rx_endlvl = re.compile(r'^\s*},?\s*(--.*?|)\s*$')  # }
+        # NameOfBase = {
+        rx_opendb = re.compile(r'^\s*(\w+)\s*=\s*{\s*$')
+        # {
+        rx_open0 = re.compile(r'^\s*{\s*$')
+        # [IntKey] = {
+        rx_opennest_num = re.compile(r'^\s*\[(\d+)\]\s*=\s*{\s*$')
+        # ["NameOfKey"] = {
+        rx_opennest_str = re.compile(r'^\s*\["(.+?)"\]\s*=\s*{\s*$')
+        # [IntKey] = IntVal
+        rx_kvpair_num = re.compile(r'^\s*\[(\d+)\]\s*=\s*(\d+),?\s*$')
+        # [StrKey] = StrVal
+        rx_kvpair_str = re.compile(r'^\s*\["(.+?)"\]\s*=\s*"(.*?)",?\s*$')
+        # }
+        rx_endlvl = re.compile(r'^\s*},?\s*(--.*?|)\s*$')
         level: int = 0
         lineno: int = 0
-        in_profiles = False
 
         self.__db = Dir(None, None)
         ref = self.__db
@@ -143,7 +149,6 @@ def calc_statistics(base: dict) -> Statistics:
     """
     num_profile_keys: tp.Optional[int] = None
     num_profiles: tp.Optional[int] = None
-    counts: tp.Dict[str, tp.Optional[int]] = {}
 
     if 'GatherMateDB' in base:
         if 'profileKeys' in base['GatherMateDB']:
@@ -181,10 +186,11 @@ def calc_grow(before: Statistics, after: Statistics) -> Statistics:
             'Mine': safe0(after.counts['Mine']) - safe0(before.counts['Mine']),
             'Fish': safe0(after.counts['Fish']) - safe0(before.counts['Fish']),
             'Gas': safe0(after.counts['Gas']) - safe0(before.counts['Gas']),
-            'Treasure': safe0(after.counts['Treasure']) - safe0(before.counts['Treasure'])
+            'Treasure': (safe0(after.counts['Treasure']) -
+                         safe0(before.counts['Treasure'])),
         },
         safe0(after.nodes_total) - safe0(before.nodes_total),
-        safe0(after.zones_total) - safe0(before.zones_total)
+        safe0(after.zones_total) - safe0(before.zones_total),
     )
 
 
@@ -206,35 +212,34 @@ def print_statistics_changes(before: Statistics, after: Statistics) -> None:
         print("... no changes at all")
 
 
-def deep_merge(a: dict, b:dict) -> dict:
-    if a is None and b is None:
+def deep_merge(struct1: dict, struct2: dict) -> dict:
+    if struct1 is None and struct2 is None:
         return {}
-    elif a is None:
-        return b
-    elif b is None:
-        return a
+    elif struct1 is None:
+        return struct2
+    elif struct2 is None:
+        return struct1
 
-    keyset = set(a.keys()) | set(b.keys())
+    keyset = set(struct1.keys()) | set(struct2.keys())
     r = {}
     for k in keyset:
-        if k in a and k in b:
-            assert isinstance(a[k], dict) == isinstance(b[k], dict)
-            if isinstance(a[k], dict):
-                r[k] = deep_merge(a[k], b[k])
-            elif a[k] == b[k]:
-                r[k] = a[k]
+        if k in struct1 and k in struct2:
+            assert isinstance(struct1[k], dict) == isinstance(struct2[k], dict)
+            if isinstance(struct1[k], dict):
+                r[k] = deep_merge(struct1[k], struct2[k])
+            elif struct1[k] == struct2[k]:
+                r[k] = struct1[k]
             else:
-                r[k] = a[k]  # forget b[k]
-        elif k in a:
-            r[k] = a[k]
+                r[k] = struct1[k]  # forget struct2[k]
+        elif k in struct1:
+            r[k] = struct1[k]
         else:
-            r[k] = b[k]
+            r[k] = struct2[k]
     return r
 
 
 def load_db(filename: str) -> dict:
     try:
-        inp: tp.TextIO
         with open(filename, encoding='utf-8') as inp:
             dbx = GatherMate()
             dbx.load(inp)
@@ -243,7 +248,7 @@ def load_db(filename: str) -> dict:
         return empty_gathermate()
 
 
-def _save(out: io.TextIOBase, db: dict, name: str) -> None:
+def _save(out: tp.TextIO, db: dict, name: str) -> None:
     if name not in db:
         print(f'section "{name}" not exists')
         return
@@ -266,7 +271,6 @@ def _save(out: io.TextIOBase, db: dict, name: str) -> None:
 
 
 def save_db(db: dict, fname: str) -> None:
-    out: tp.TextIO
     with open(fname, 'wt', encoding='utf-8') as out:
         out.write('\n')
         out.write('GatherMateDB = {\n')
