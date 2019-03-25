@@ -221,7 +221,10 @@ class Parser:
                 self._consume()
                 return False
             if self._cur.id == _token.TokenID.NUMBER:
-                ret = float(self._cur.value)
+                if self._cur.value.find('.') >= 0:
+                    ret = float(self._cur.value)
+                else:
+                    ret = int(self._cur.value)
                 self._consume()
                 return ret
             if self._cur.id == _token.TokenID.STRING:
@@ -316,8 +319,8 @@ foo = {["bar"]="baz"; [10]=23, "kaka byaka"}
 
 
 def _test2():
-    # _test_file('../testdata/GatherMate/test1.lua')
-    _test_file('../testdata/MobInfo2/1.lua')
+    _test_file('../testdata/GatherMate/test1.lua')
+    # _test_file('../testdata/MobInfo2/1.lua')
 
 
 if __name__ == '__main__':
