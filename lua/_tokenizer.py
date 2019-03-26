@@ -37,6 +37,7 @@ EOLS: tp.Tuple[str] = (
 
 COMBOS: tp.Tuple[tp.Tuple[str, _token.TokenID]] = (
     ('...', _token.TokenID.ELLIPSIS),
+    ('..', _token.TokenID.CONCATENATE),
     ('<=', _token.TokenID.KEY_LE),
     ('>=', _token.TokenID.KEY_GE),
     ('==', _token.TokenID.KEY_EQ),

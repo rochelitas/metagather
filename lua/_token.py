@@ -35,6 +35,7 @@ class TokenID(AutoName):
     KEYWORD_NOT = enum.auto()
 
     ELLIPSIS = enum.auto()
+    CONCATENATE = enum.auto()
     COMMENT = enum.auto()
     LONG_COMMENT = enum.auto()
 
