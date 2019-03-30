@@ -3,67 +3,74 @@
 import io
 import re
 import typing as tp
-from lua import _token
+from ._token import Token
+from ._token import TokenID
 
-KEYWORDS = {
-    'nil': _token.TokenID.KEYWORD_NIL,
-    'false': _token.TokenID.KEYWORD_FALSE,
-    'true': _token.TokenID.KEYWORD_TRUE,
-    'do': _token.TokenID.KEYWORD_DO,
-    'end': _token.TokenID.KEYWORD_END,
-    'while': _token.TokenID.KEYWORD_WHILE,
-    'for':  _token.TokenID.KEYWORD_FOR,
-    'in': _token.TokenID.KEYWORD_IN,
-    'repeat': _token.TokenID.KEYWORD_REPEAT,
-    'until': _token.TokenID.KEYWORD_UNTIL,
-    'if': _token.TokenID.KEYWORD_IF,
-    'then': _token.TokenID.KEYWORD_THEN,
-    'else': _token.TokenID.KEYWORD_ELSE,
-    'elseif': _token.TokenID.KEYWORD_ELSEIF,
-    'local': _token.TokenID.KEYWORD_LOCAL,
-    'return': _token.TokenID.KEYWORD_RETURN,
-    'and': _token.TokenID.KEYWORD_AND,
-    'or': _token.TokenID.KEYWORD_OR,
-    'not': _token.TokenID.KEYWORD_NOT,
+
+KEYWORDS: tp.Dict[str, TokenID] = {
+    'nil': TokenID.KEYWORD_NIL,
+    'false': TokenID.KEYWORD_FALSE,
+    'true': TokenID.KEYWORD_TRUE,
+    'do': TokenID.KEYWORD_DO,
+    'end': TokenID.KEYWORD_END,
+    'while': TokenID.KEYWORD_WHILE,
+    'for':  TokenID.KEYWORD_FOR,
+    'in': TokenID.KEYWORD_IN,
+    'repeat': TokenID.KEYWORD_REPEAT,
+    'until': TokenID.KEYWORD_UNTIL,
+    'goto': TokenID.KEYWORD_GOTO,
+    'break': TokenID.KEYWORD_BREAK,
+    'if': TokenID.KEYWORD_IF,
+    'then': TokenID.KEYWORD_THEN,
+    'else': TokenID.KEYWORD_ELSE,
+    'elseif': TokenID.KEYWORD_ELSEIF,
+    'function': TokenID.KEYWORD_FUNCTION,
+    'local': TokenID.KEYWORD_LOCAL,
+    'return': TokenID.KEYWORD_RETURN,
+    'and': TokenID.KEYWORD_AND,
+    'or': TokenID.KEYWORD_OR,
+    'not': TokenID.KEYWORD_NOT,
 }
 
 COMMENT = '--'
+LABEL_MARK = '::'
 
-EOLS: tp.Tuple[str] = (
+EOLS: tp.List[str] = [
     '\n\r',
     '\r\n',
     '\n'
-)
+]
 
-COMBOS: tp.Tuple[tp.Tuple[str, _token.TokenID]] = (
-    ('...', _token.TokenID.ELLIPSIS),
-    ('..', _token.TokenID.CONCATENATE),
-    ('<=', _token.TokenID.KEY_LE),
-    ('>=', _token.TokenID.KEY_GE),
-    ('==', _token.TokenID.KEY_EQ),
-    ('~=', _token.TokenID.KEY_NE),
-    ('[', _token.TokenID.KEY_OPEN_SQUARE_BRACKET),
-    (']', _token.TokenID.KEY_CLOSE_SQUARE_BRACKET),
-    ('(', _token.TokenID.KEY_OPEN_ROUND_BRACKET),
-    (')', _token.TokenID.KEY_CLOSE_ROUND_BRACKET),
-    ('{', _token.TokenID.KEY_OPEN_CURLY_BRACKET),
-    ('}', _token.TokenID.KEY_CLOSE_CURLY_BRACKET),
-    ('=', _token.TokenID.KEY_EQUAL),
-    (',', _token.TokenID.KEY_COMMA),
-    (';', _token.TokenID.KEY_SEMICOLON),
-    (':', _token.TokenID.KEY_COLON),
-    ('.', _token.TokenID.KEY_DOT),
-    ('+', _token.TokenID.KEY_PLUS),
-    ('-', _token.TokenID.KEY_MINUS),
-    ('*', _token.TokenID.KEY_STAR),
-    ('/', _token.TokenID.KEY_SLASH),
-    ('^', _token.TokenID.KEY_ROOF),
-    ('%', _token.TokenID.KEY_PERCENT),
-    ('<', _token.TokenID.KEY_LT),
-    ('>', _token.TokenID.KEY_GT),
-)
+COMBOS: tp.List[tp.Tuple[str, TokenID]] = [
+    ('...', TokenID.ELLIPSIS),
+    ('..', TokenID.CONCATENATE),
+    ('<=', TokenID.LESS_OR_EQUAL),
+    ('>=', TokenID.GREATER_OR_EQUAL),
+    ('==', TokenID.EQUAL),
+    ('~=', TokenID.NOT_EQUAL),
+    ('[', TokenID.KEY_OPEN_SQUARE_BRACKET),
+    (']', TokenID.KEY_CLOSE_SQUARE_BRACKET),
+    ('(', TokenID.KEY_OPEN_ROUND_BRACKET),
+    (')', TokenID.KEY_CLOSE_ROUND_BRACKET),
+    ('{', TokenID.KEY_OPEN_CURLY_BRACKET),
+    ('}', TokenID.KEY_CLOSE_CURLY_BRACKET),
+    ('=', TokenID.KEY_EQUAL),
+    (',', TokenID.KEY_COMMA),
+    (';', TokenID.KEY_SEMICOLON),
+    (':', TokenID.KEY_COLON),
+    ('.', TokenID.KEY_DOT),
+    ('+', TokenID.KEY_PLUS),
+    ('-', TokenID.KEY_MINUS),
+    ('*', TokenID.KEY_STAR),
+    ('/', TokenID.KEY_SLASH),
+    ('^', TokenID.KEY_CARET),
+    ('%', TokenID.KEY_PERCENT),
+    ('<', TokenID.KEY_LT),
+    ('>', TokenID.KEY_GT),
+    ('#', TokenID.KEY_SHARP),
+]
 
-rx_SPACE = re.compile(r'^\s+')
+rx_SPACE = re.compile(r'^[ \t]+')  # spaces without EOL
 rx_NUMERIC = re.compile(r'^([+-]?(\d+\.\d+|\.\d+|\d+\.?)([eE][+-]?\d+|))')
 rx_IDENTIFIER = re.compile(r'^([A-Za-z_][A-Za-z_0-9]*)')
 rx_OPEN_LONG_BRACKET = re.compile(r'^\[=*\[')
@@ -89,10 +96,10 @@ class Tokenizer:
         self._pos_no: int = 0
         self._ok: bool = True
 
-    def _token(self, type: _token.TokenID, value: tp.Any) -> _token.Token:
-        if type == _token.TokenID.ERROR:
+    def _token(self, type: TokenID, value: tp.Any) -> Token:
+        if type == TokenID.ERROR:
             self._ok = False
-        return _token.Token(self._line_no, self._pos_no, type, value)
+        return Token(self._line_no, self._pos_no, type, value)
 
     def _match(self, matcher) -> str:
         x = matcher.match(self._line)
@@ -135,6 +142,13 @@ class Tokenizer:
         return s
 
     def _get_string_ends_by(self, terminator: str) -> tp.Tuple[str, int]:
+        """
+        get string been finished with substring in <terminator>
+        all lua's escape sequences converts to its original representations
+        :param terminator: sequence of characters designates end of string
+        :return: tuple with string content
+                       and position of terminator in the _line
+        """
         escape_next = False
         s = self._line
         ret = ''
@@ -174,12 +188,13 @@ class Tokenizer:
             num += 1
             s = s[1:]
 
-    def tokens(self):  # -> tp.Generator[_token.Token, None, None]:
+    def tokens(self):  # -> tp.Generator[Token, None, None]:
         while self._ok:
             if not self._line:
                 try:
                     self._line = self._readline()
                     if not self._line:
+                        # in streams empty line designates end of stream
                         self._line = None
                     # print(f'LINE: {self._line}')
                     self._line_no += 1
@@ -188,9 +203,10 @@ class Tokenizer:
                     self._line = None
                 if self._line is None:
                     if self._closing_bracket:
-                        yield self._token(_token.TokenID.ERROR, 'Missing closing bracket')
-                    yield self._token(_token.TokenID.END_OF_STREAM, 'NULL LINE')
-                    return
+                        yield self._token(TokenID.ERROR,
+                                          'Missing closing bracket')
+                    yield self._token(TokenID.END_OF_STREAM, '<EOS>')
+                    return  # no more entries
             if self._closing_bracket:
                 pos = self._line.find(self._closing_bracket)
                 if pos >= 0:
@@ -201,9 +217,11 @@ class Tokenizer:
                     if n:
                         self._block_content = self._block_content[n:]
                     if self._block_is_comment:
-                        yield self._token(_token.TokenID.COMMENT, self._block_content)
+                        yield self._token(TokenID.COMMENT,
+                                          self._block_content)
                     else:
-                        yield self._token(_token.TokenID.STRING, self._block_content)
+                        yield self._token(TokenID.STRING,
+                                          self._block_content)
                     self._block_content = None
                     self._block_is_comment = None
                     self._closing_bracket = None
@@ -211,14 +229,15 @@ class Tokenizer:
                     self._block_content += self._line
                     self._skip(len(self._line))
                     continue
+            # skip trailing spaces
+            self._skip_spaces()
+            if not self._line:  # read next line if current line is empty
+                continue
             # check for end of line
             n = _eol_check(self._line)
             if n:
                 self._skip(n)
-                yield self._token(_token.TokenID.END_OF_LINE, '')
-            # skip trailing spaces
-            self._skip_spaces()
-            if not self._line:  # readline if there is no token
+                yield self._token(TokenID.END_OF_LINE, '<EOL>')
                 continue
             # check for comment
             if self._test(COMMENT, False):
@@ -233,13 +252,27 @@ class Tokenizer:
                 else:
                     s = self._line
                     self._skip(len(s))
-                    yield self._token(_token.TokenID.COMMENT, s)
+                    yield self._token(TokenID.COMMENT, s.rstrip())
                     continue
+            # check for label
+            if self._test(LABEL_MARK, False):
+                self._skip(len(LABEL_MARK))
+                try:
+                    s = self._get_identifier()
+                    self._skip(len(s))
+                    if not self._test(LABEL_MARK, True):
+                        raise ValueError('missing label mark')
+                    self._skip(len(LABEL_MARK))
+                    yield self._token(TokenID.LABEL, s)
+                    continue
+                except ValueError as err:
+                    yield self._token(TokenID.ERROR, str(err))
+                    return
             # Check for numeric value
             try:
                 value = self._get_number()
                 self._skip(len(value))
-                yield self._token(_token.TokenID.NUMBER, value)
+                yield self._token(TokenID.NUMBER, value)
                 continue
             except ValueError:
                 pass
@@ -257,10 +290,10 @@ class Tokenizer:
                     self._skip(1)
                     value, rawsize = self._get_string_ends_by('"')
                     self._skip(rawsize)
-                    yield self._token(_token.TokenID.STRING, value)
+                    yield self._token(TokenID.STRING, value)
                     continue
                 except ValueError:
-                    yield self._token(_token.TokenID.ERROR, f'bad "-string: f{self._line}')
+                    yield self._token(TokenID.ERROR, f'bad "-string: f{self._line}')
                     self._ok = False
                     break
             # Check for string '...'
@@ -269,10 +302,10 @@ class Tokenizer:
                     self._skip(1)
                     value, rawsize = self._get_string_ends_by('\'')
                     self._skip(rawsize)
-                    yield self._token(_token.TokenID.STRING, value)
+                    yield self._token(TokenID.STRING, value)
                     continue
                 except ValueError:
-                    yield self._token(_token.TokenID.ERROR, f'bad \'-string: f{self._line}')
+                    yield self._token(TokenID.ERROR, f'bad \'-string: f{self._line}')
                     break
             # Check for keyword or identifier
             try:
@@ -281,7 +314,7 @@ class Tokenizer:
                 if value in KEYWORDS:
                     yield self._token(KEYWORDS[value], value)
                 else:
-                    yield self._token(_token.TokenID.NAME, value)
+                    yield self._token(TokenID.NAME, value)
                 continue
             except ValueError:
                 pass
@@ -297,14 +330,16 @@ class Tokenizer:
                 yield self._token(tok, key)
                 self._skip(len(key))
                 continue
-            yield self._token(_token.TokenID.ERROR, f'bad string: {self._line}')
+            # unknown token
+            yield self._token(TokenID.ERROR,
+                              f'bad string or internal error: "{self._line}"')
 
 
-def split(stream: tp.TextIO) -> tp.List[_token.Token]:
+def split(stream: tp.TextIO) -> tp.List[Token]:
     return [t for t in Tokenizer(stream.readline).tokens()]
 
 
-def split_text(text: str) -> tp.List[_token.Token]:
+def split_text(text: str) -> tp.List[Token]:
     return split(io.StringIO(text))
 
 
@@ -334,6 +369,7 @@ def test2():
 
 def test3():
     _test_file('../testdata/MobInfo2/1.lua')
+
 
 def test_numbers():
     _test_text('a=1; b=+2; c=-3; d=4.; e=.5; f=-6.7; g=8e9; h=-1.011e-12')
