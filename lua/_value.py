@@ -1,11 +1,28 @@
 #! /usr/bin/env python3
 
-import typing as tp
 import abc
+import hashlib
+import typing as tp
 
 from lua._token import TokenID
 from lua._token import Token
 from lua.utils import escape
+
+
+# Порядок следования типов в сравнении
+_TYPE_ORDER: tp.List[str] = [
+    'Identifier',
+    'Boolean',
+    'Integer',
+    'Numeric',
+    'String',
+    'Table',
+    'Nil',
+]
+
+
+def cmp(a, b) -> int:
+    return (a > b) - (a < b)
 
 
 class Value(abc.ABC):
@@ -25,6 +42,36 @@ class Value(abc.ABC):
 
     def serialize(self, out: tp.TextIO, nested_level: int) -> None:
         out.write(self.str)
+
+    def __hash__(self) -> int:
+        return hash(self.__class__.__name__ + ',' + self.str)
+
+    def __cmp__(self, other) -> int:
+        n1: str = self.__class__.__name__
+        n2: str = other.__class__.__name__
+        if n1 != n2:
+            c = cmp(_TYPE_ORDER.index(n1), _TYPE_ORDER.index(n2))
+            if c:
+                return c
+        return cmp(self.str, other.str)
+
+    def __eq__(self, other) -> bool:
+        return self.__cmp__(other) == 0
+
+    def __ne__(self, other) -> bool:
+        return self.__cmp__(other) != 0
+
+    def __lt__(self, other) -> bool:
+        return self.__cmp__(other) < 0
+
+    def __le__(self, other) -> bool:
+        return self.__cmp__(other) <= 0
+
+    def __ge__(self, other) -> bool:
+        return self.__cmp__(other) >= 0
+
+    def __gt__(self, other) -> bool:
+        return self.__cmp__(other) > 0
 
 
 class Nil(Value):
@@ -143,24 +190,33 @@ class Table(Value):
         raise NotImplementedError
 
     def serialize(self, out: tp.TextIO, nested_level: int) -> None:
-        out.write('{\n')
+        # if nested level == 0 then it is global table
+        if nested_level:
+            out.write('{\n')
         keys: tp.List[Value] = sorted(self._data.keys(), key=lambda x: x.str)
         for ix, key in enumerate(keys, 1):
             skip_key: bool = False
-            out.write('\t' * (nested_level + 1))
+            if nested_level:
+                out.write('\t' * nested_level)
             if isinstance(key, Integer) and key.value == ix:
                 # skip key and store only value
                 skip_key = True
             else:
-                out.write('[')
-                key.serialize(out, nested_level=nested_level+1)
-                out.write('] = ')
+                if isinstance(key, Identifier):
+                    key.serialize(out, nested_level=nested_level + 1)
+                else:
+                    out.write('[')
+                    key.serialize(out, nested_level=nested_level+1)
+                    out.write(']')
+                out.write(' = ')
             self._data[key].serialize(out, nested_level=nested_level+1)
-            out.write(',')
-            if skip_key:
-                out.write(' -- [{}]'.format(ix))
+            if nested_level:
+                out.write(',')
+                if skip_key:
+                    out.write(' -- [{}]'.format(ix))
             out.write('\n')
-        out.write('\t' * nested_level + '}')
+        if nested_level:
+            out.write('\t' * (nested_level - 1) + '}')
 
     @property
     def value(self) -> tp.Dict[tp.Any, tp.Any]:
@@ -185,6 +241,41 @@ class Table(Value):
 
     def keys(self) -> tp.List[Value]:
         return sorted(self._data.keys(), key=lambda x: x.str)
+
+
+def _make_value(src, toplevel: bool) -> Value:
+    if isinstance(src, type(None)):
+        return Nil()
+    if isinstance(src, bool):
+        return Boolean(src)
+    if isinstance(src, int):
+        return Integer(src)
+    if isinstance(src, float):
+        return Numeric(src)
+    if isinstance(src, str):
+        return Identifier(src) if toplevel else String(src)
+    if isinstance(src, dict):
+        return _make_table(src, toplevel=False)
+    if isinstance(src, (list, tuple)):
+        return _make_list(src)
+
+
+def _make_list(src) -> Table:
+    t = Table()
+    for v in src:
+        t.append(_make_value(v, False))
+    return t
+
+
+def _make_table(src: dict, toplevel: bool) -> Table:
+    t = Table()
+    for k, v in src.items():
+        t.set(_make_value(k, toplevel), _make_value(v, False))
+    return t
+
+
+def make_table(src: dict) -> Table:
+    return _make_table(src, True)
 
 
 if __name__ == '__main__':
@@ -214,5 +305,4 @@ if __name__ == '__main__':
     print(d.value, d.str)
     print(s.value, s.str)
     print(t.value, t.str)
-    tt.serialize(sys.stdout, 0)
-
+    tt.serialize(sys.stdout, 1)

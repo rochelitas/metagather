@@ -15,6 +15,7 @@ from lua._value import String
 from lua._value import Table
 from lua._value import Identifier
 
+
 class ParserError(Exception):
     pass
 
@@ -193,13 +194,13 @@ class Parser:
             return ret
         if self._cur.id == TokenID.NUMBER:
             if self._cur.value.find('.') >= 0:
-                ret = Integer(self._cur)
+                ret = Numeric.create(self._cur)
             else:
-                ret = Numeric(self._cur)
+                ret = Integer.create(self._cur)
             self._consume()
             return ret
         if self._cur.id == TokenID.STRING:
-            ret = String(self._cur)
+            ret = String.create(self._cur)
             self._consume()
             return ret
         if self._cur.id == TokenID.NAME:
@@ -275,7 +276,7 @@ def parse_tokens(source: tp.Iterable[Token]) -> Table:
 
 
 def parse_stream(stream: tp.TextIO) -> Table:
-    return parse_tokens([t for t in Tokenizer(stream.readline).tokens()])
+    return parse_tokens(Tokenizer(stream.readline).tokens())
 
 
 def parse_text(text: str) -> Table:
@@ -283,12 +284,13 @@ def parse_text(text: str) -> Table:
 
 
 def _test(text: str) -> None:
-    import pprint
-    tokens = list(t for t in Tokenizer(io.StringIO(text).readline).tokens())
-    for t in tokens:
-        print(str(t))
-    result = parse_tokens(tokens)
-    pprint.pprint(result.str)
+    print('--- text ---')
+    print(text)
+    result = parse_text(text)
+    print("--- serialised ---")
+    import sys
+    result.serialize(sys.stdout, 0)
+    print("--- end ---")
 
 
 def _test_file(name:str) -> None:
@@ -302,9 +304,9 @@ foo = {["bar"]="baz"; [10]=23, "kaka byaka"}
 
 
 def _test2():
-    _test_file('../testdata/GatherMate/test1.lua')
-    # _test_file('../testdata/MobInfo2/1.lua')
+    # _test_file('../testdata/GatherMate/test1.lua')
+    _test_file('../testdata/MobInfo2/1.lua')
 
 
 if __name__ == '__main__':
-    _test1()
+    _test2()
